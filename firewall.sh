@@ -34,7 +34,7 @@ case "$1" in
         awk -F "|" '
             NR==FNR { whitelist[$1]=1; next }
             {
-                gsub(/ /, "", $3)          # $3 = IP nel nuovo formato
+                gsub(/ /, "", $3)
                 if (!($3 in whitelist))
                     print "ALERT: IP non autorizzato -> " $3 " | Data: " $1 " " $2 " | PID: " $5
             }
@@ -83,6 +83,7 @@ case "$1" in
         awk -F "|" '
             NR==FNR { blacklist[$1]=1; next }
             {
+                gsub(/ /, "", $3)
                 if ($3 in blacklist)
                     print "CRITICAL: Tentativo da IP BANNATO -> " $3 " | Data: " $1 " " $2 " | PID: " $5
             }
@@ -101,19 +102,19 @@ case "$1" in
 
             echo ""
             echo "--- TOP 5 IP CON ERRORI 400 (ACCESSI NOTTURNI) ---"
-            awk -F "|" '$4 == "400" { print $3 }' "$LOG_FILE" \
+            awk -F "|" '$4 == "400" { gsub(/ /, "", $3); print $3 }' "$LOG_FILE" \
                 | sort | uniq -c | sort -nr | head -5
 
             echo ""
             echo "--- TOP 5 IP SCONOSCIUTI (NON IN WHITELIST) ---"
-            awk -F "|" 'NR==FNR { white[$1]=1; next } !($3 in white) { print $3 }' \
+            awk -F "|" 'NR==FNR { white[$1]=1; next } { gsub(/ /, "", $3) } !($3 in white) { print $3 }' \
                 "$WHITELIST" "$LOG_FILE" \
                 | sort | uniq -c | sort -nr | head -5
 
             echo ""
             echo "--- IP IN BLACKLIST CHE HANNO TENTATO L'ACCESSO ---"
             if [ -s "$BLACKLIST" ]; then
-                awk -F "|" 'NR==FNR { bl[$1]=1; next } $3 in bl { print $3 " | " $1 " " $2 }' \
+                awk -F "|" 'NR==FNR { bl[$1]=1; next } { gsub(/ /, "", $3) } $3 in bl { print $3 " | " $1 " " $2 }' \
                     "$BLACKLIST" "$LOG_FILE" | head -10
             else
                 echo "(blacklist vuota)"
