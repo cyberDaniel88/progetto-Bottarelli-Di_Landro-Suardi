@@ -16,7 +16,7 @@
 #   Level 0 = disabled    ->   0 MB  (alert immediato se accede)
 # =============================================================================
 
-ROOT_DIR="/workspaces/progetto-Bottarelli-Di_Landro-Suardi/intranet_sim"
+ROOT_DIR="/workspaces/codespaces-blank/progetto-Bottarelli-Di_Landro-Suardi/intranet_sim"
 LOG_FILE="$ROOT_DIR/logs/access.log"
 USERS_CSV="$ROOT_DIR/data/users.csv"
 OUT_DIR="$ROOT_DIR/logs_output"
@@ -81,7 +81,7 @@ while IFS= read -r giorno; do
     echo "--- $giorno ---" >> "$REPORT"
 
     # Per ogni utente nel CSV, calcola i MB consumati in questo giorno
-    tail -n +2 "$USERS_CSV" | while IFS="," read -r uid nome mail pass level ip; do
+    while IFS="," read -r uid nome mail pass level ip; do
         ip=$(echo "$ip" | tr -d ' \r')
         level=$(echo "$level" | tr -d ' \r')
         nome=$(echo "$nome" | tr -d '\r')
@@ -99,7 +99,8 @@ while IFS= read -r giorno; do
 
         # Calcola MB consumati (solo accessi 200)
         mb=$(echo "scale=2; ($accessi * $BYTES_PER_ACCESS) / (1024 * 1024)" | bc)
-        mb_int=${mb%.*}
+        mb_int=$(echo "$mb" | awk -F'.' '{print ($1+0)}')
+        mb_int=${mb_int:-0}
 
         # Determina soglia e nome livello in base al level
         case "$level" in
@@ -136,7 +137,7 @@ while IFS= read -r giorno; do
                 "$giorno" "$nome" "$nome_level" "$mb" "$soglia" >> "$REPORT"
         fi
 
-    done
+    done < <(tail -n +2 "$USERS_CSV")
 
     echo "" >> "$REPORT"
 
