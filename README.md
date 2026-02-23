@@ -66,7 +66,7 @@ Configura l'intera simulazione dall'inizio. Esegue in sequenza:
 3. Scrive `settings.conf` con gli orari diurni (`START_HOUR=6`, `END_HOUR=21`)
 4. Lancia `create_users.py` per generare il database utenti
 5. Lancia `create_accesslog.py` per generare il log di accesso
-6. Costruisce `whitelist.conf` con 96 IP estratti casualmente dal log
+6. Costruisce `whitelist.conf` con gli IP appartenenti alla nostra subnet
 7. Rende eseguibili tutti gli script e installa `manuale` in `/usr/local/bin/`
 
 **Output a schermo:**
