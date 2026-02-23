@@ -146,12 +146,10 @@ while true; do
             # Aggiunge la nuova riga al CSV
             echo "$NEW_ID,$NEW_NAME,$NEW_MAIL,$NEW_PASS,$NEW_LEVEL,$NEW_IP" >> "$USERS_CSV"
 
-            # Aggiorna whitelist: aggiunge l'IP se nella subnet 192.168.x.x
-            if [[ "$NEW_IP" =~ ^192\.168\. ]]; then
-                if ! grep -qx "$NEW_IP" "$WHITELIST"; then
-                    echo "$NEW_IP" >> "$WHITELIST"
-                    sort -t'.' -k3,3n -k4,4n "$WHITELIST" -o "$WHITELIST"
-                fi
+            # Aggiorna whitelist (valid_ip garantisce già il formato 192.168.x.x)
+            if ! grep -qx "$NEW_IP" "$WHITELIST"; then
+                echo "$NEW_IP" >> "$WHITELIST"
+                sort -t'.' -k3,3n -k4,4n "$WHITELIST" -o "$WHITELIST"
             fi
 
             echo ""
@@ -262,7 +260,7 @@ while true; do
             # Esci
 
             clear
-            exit 1
+            exit 0
             ;;
 
         *)
