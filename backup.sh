@@ -73,7 +73,7 @@ case "$1" in
         if [[ "$CONFIRM" == "Y" ]]; then
             # Backup di sicurezza del file corrente prima di sovrascriverlo
             TS=$(date '+%Y%m%d_%H%M%S')
-            cp "$DEST" "$BACKUP_DIR/${DEST_NAME%.csv}_pre_restore_${TS}.${DEST##*.}" 2>/dev/null
+            cp "$DEST" "$BACKUP_DIR/${DEST_NAME%.*}_pre_restore_${TS}.${DEST##*.}" 2>/dev/null
             cp "$BACKUP_FILE" "$DEST"
             echo "[OK] Ripristino completato."
         else
