@@ -28,8 +28,7 @@ case "$1" in
     # ── INIT: crea snapshot iniziale ────────────────────────────────────────
     --init)
         if [ -f "$SNAPSHOT" ]; then
-            echo "Snapshot già esistente. Sovrascrivere? [Y/n]: "
-            read -r CONFIRM
+            read -rp "Snapshot già esistente. Sovrascrivere? [Y/n]: " CONFIRM
             [[ "$CONFIRM" != "Y" ]] && echo "Operazione annullata." && exit 0
         fi
         cp "$USERS_CSV" "$SNAPSHOT"
