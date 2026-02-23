@@ -16,7 +16,7 @@
 #   Level 0 = disabled    ->   0 MB  (alert immediato se accede)
 # =============================================================================
 
-ROOT_DIR="/workspaces/progetto-Bottarelli-DiLandro-Suardi/intranet_sim"
+ROOT_DIR="/workspaces/progetto-Bottarelli-Di_Landro-Suardi/intranet_sim"
 LOG_FILE="$ROOT_DIR/logs/access.log"
 USERS_CSV="$ROOT_DIR/data/users.csv"
 OUT_DIR="$ROOT_DIR/logs_output"
