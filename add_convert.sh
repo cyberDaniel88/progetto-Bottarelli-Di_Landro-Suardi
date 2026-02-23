@@ -1,7 +1,8 @@
 #!/bin/bash
 
-ROOT_DIR="/workspaces/progetto-Bottarelli-Di_Landro-Suardi/intranet_sim"
+ROOT_DIR="/workspaces/codespaces-blank/progetto-Bottarelli-Di_Landro-Suardi/intranet_sim"
 USERS_CSV="$ROOT_DIR/data/users.csv"
+WHITELIST="$ROOT_DIR/config/whitelist.conf"
 
 
 next_id() {
@@ -145,6 +146,14 @@ while true; do
             # Aggiunge la nuova riga al CSV
             echo "$NEW_ID,$NEW_NAME,$NEW_MAIL,$NEW_PASS,$NEW_LEVEL,$NEW_IP" >> "$USERS_CSV"
 
+            # Aggiorna whitelist: aggiunge l'IP se nella subnet 192.168.x.x
+            if [[ "$NEW_IP" =~ ^192\.168\. ]]; then
+                if ! grep -qx "$NEW_IP" "$WHITELIST"; then
+                    echo "$NEW_IP" >> "$WHITELIST"
+                    sort -t'.' -k3,3n -k4,4n "$WHITELIST" -o "$WHITELIST"
+                fi
+            fi
+
             echo ""
             echo "Utente '$NEW_NAME' aggiunto con successo (ID: $NEW_ID)."
             read -rp "Premere INVIO per tornare al menù."
@@ -179,11 +188,19 @@ while true; do
 
             if [[ "$CONFIRM" == "Y" ]]; then
                 # Elimina la riga corrispondente
+                # Recupera l'IP dell'utente prima di eliminarlo
+                DEL_IP=$(awk -F',' -v name="$DEL_NAME" '$2 == name {print $6; exit}' "$USERS_CSV" | tr -d ' \r')
                 TMP_FILE=$(mktemp)
                 awk -F',' -v name="$DEL_NAME" 'BEGIN{deleted=0} ($2 == name && deleted == 0) {deleted=1; next} {print}' \
                     "$USERS_CSV" > "$TMP_FILE"
                 mv "$TMP_FILE" "$USERS_CSV"
                 echo ""
+
+                # Aggiorna whitelist: rimuove l'IP se presente
+                if [[ -n "$DEL_IP" ]] && grep -qx "$DEL_IP" "$WHITELIST"; then
+                    grep -vx "$DEL_IP" "$WHITELIST" > "${WHITELIST}.tmp"
+                    mv "${WHITELIST}.tmp" "$WHITELIST"
+                fi
                 echo "Utente '$DEL_NAME' eliminato con successo."
             else
                 echo ""
