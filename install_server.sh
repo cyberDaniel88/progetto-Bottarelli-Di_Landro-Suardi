@@ -35,5 +35,5 @@ echo "  data/users.csv        -> $(wc -l < "$SERVER_ROOT/data/users.csv") righe"
 echo "  logs/access.log       -> $(wc -l < "$ACCESS_LOG") righe"
 echo "  config/whitelist.conf -> $(wc -l < "$WHITELIST") IP"
 
-chmod +x "$SCRIPTS_DIR/manuale.sh"
+chmod +x "$SCRIPTS_DIR"/*.sh
 sudo cp "$SCRIPTS_DIR/manuale.sh" /usr/local/bin/manuale
