@@ -3,7 +3,7 @@
 # Formato log: DATA|ORA|IP|CODICE_ERRORE|PID
 #              $1   $2  $3  $4            $5
 
-ROOT_DIR="/workspaces/codespaces-blank/progetto-Bottarelli-Di_Landro-Suardi/intranet_sim"
+ROOT_DIR="/workspaces/progetto-Bottarelli-Di_Landro-Suardi/intranet_sim"
 CONFIG="$ROOT_DIR/config/settings.conf"
 LOG_FILE="$ROOT_DIR/logs/access.log"
 OUT_FILE="$ROOT_DIR/logs_output"
