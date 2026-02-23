@@ -25,14 +25,15 @@ def generate_unique_ips(count):
     return list(ip_pool)
 
 
+def unique_names(count):
+    """Generate unique (first, last) pairs."""
+    pool = [(f, l) for f in FIRST_NAMES for l in LAST_NAMES]
+    random.shuffle(pool)
+    return pool[:count]
+
+
 def weighted_level():
     return random.choices([1, 2, 3], weights = [65, 30, 5], k = 1)[0]
-
-
-def random_name():
-    first = random.choice(FIRST_NAMES)
-    last = random.choice(LAST_NAMES)
-    return first, last
 
 
 def random_password(length = 8):
@@ -47,10 +48,10 @@ def main():
     rows = []
 
     unique_ips = generate_unique_ips(users)
-
+    names = unique_names(users)
 
     for user_id in range(1, users + 1):
-        first, last = random_name()
+        first, last = names[user_id - 1]
         name_surname = f"{first} {last}"
         mail = f"{first.lower()}.{last.lower()}@mail.com"
         password = random_password()
@@ -66,7 +67,6 @@ def main():
 
     with open(OUTPUT_PATH, mode="w", newline="") as file:
         writer = csv.writer(file)
-        # FIX: header matches exactly the fields we write
         writer.writerow(["id", "name_surname", "mail", "password", "level", "ip_address"])
         writer.writerows(rows)
 
