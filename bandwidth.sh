@@ -20,8 +20,10 @@ ROOT_DIR="/workspaces/progetto-Bottarelli-Di_Landro-Suardi/intranet_sim"
 LOG_FILE="$ROOT_DIR/logs/access.log"
 USERS_CSV="$ROOT_DIR/data/users.csv"
 OUT_DIR="$ROOT_DIR/logs_output"
+MAIL_DIR="$ROOT_DIR/mail"
 REPORT="$OUT_DIR/bandwidth_report.txt"
-ADMIN_MAIL="admin@intranet.local"
+
+DESTINATARI="daniel.dilan2006@gmail.com, luca.bottarelli03@gmail.com, lucrezia.suardi.98@gmail.com"
 
 BYTES_PER_ACCESS=524288   # 512 KB per accesso simulato
 
@@ -33,7 +35,7 @@ SOGLIA_3=200
 
 DATE_FILTER="$1"   # opzionale: YYYY-MM-DD
 
-mkdir -p "$OUT_DIR"
+mkdir -p "$OUT_DIR" "$MAIL_DIR"
 
 [[ "$1" == "-h" || "$1" == "--help" ]] && {
     echo "Uso: ./bandwidth.sh [YYYY-MM-DD]"
@@ -45,6 +47,31 @@ mkdir -p "$OUT_DIR"
     echo "  Level 1 (guest)      : ${SOGLIA_1} MB/giorno"
     echo "  Level 0 (disabled)   : accesso vietato, alert immediato"
     exit 0
+}
+
+# ── Funzione per scrivere una mail fittizia in MAIL_DIR ──────────────────────
+send_mail() {
+    local subject="$1"
+    local body="$2"
+    local tipo="$3"   # ALERT o CRITICAL
+    local ts
+    ts=$(date '+%Y%m%d_%H%M%S')
+    local filename="$MAIL_DIR/${tipo}_${ts}.txt"
+
+    {
+        echo "=================================================="
+        echo "  DA      : sistema@intranet.local"
+        echo "  A       : $DESTINATARI"
+        echo "  DATA    : $(date '+%Y-%m-%d %H:%M:%S')"
+        echo "  OGGETTO : $subject"
+        echo "=================================================="
+        echo ""
+        echo "$body"
+        echo ""
+        echo "-- Sistema Automatico Intranet --"
+    } > "$filename"
+
+    echo "         [MAIL] Notifica salvata in: $(basename "$filename")"
 }
 
 echo "[*] Monitoraggio Banda per Livello Utente"
@@ -80,29 +107,23 @@ while IFS= read -r giorno; do
 
     echo "--- $giorno ---" >> "$REPORT"
 
-    # Per ogni utente nel CSV, calcola i MB consumati in questo giorno
     while IFS="," read -r uid nome mail pass level ip; do
         ip=$(echo "$ip" | tr -d ' \r')
         level=$(echo "$level" | tr -d ' \r')
         nome=$(echo "$nome" | tr -d '\r')
 
-        # Conta accessi cod.200 dal suo IP in questo giorno
         accessi=$(awk -F"|" -v d="$giorno" -v uip="$ip" \
             '$1==d && $3==uip && $4=="200"' "$LOG_FILE" | wc -l)
-
-        # Conta anche eventuali accessi 400 (per disabled)
         accessi_400=$(awk -F"|" -v d="$giorno" -v uip="$ip" \
             '$1==d && $3==uip && $4=="400"' "$LOG_FILE" | wc -l)
 
         totale_accessi=$(( accessi + accessi_400 ))
-        [ "$totale_accessi" -eq 0 ] && continue   # utente non attivo oggi
+        [ "$totale_accessi" -eq 0 ] && continue
 
-        # Calcola MB consumati (solo accessi 200)
         mb=$(echo "scale=2; ($accessi * $BYTES_PER_ACCESS) / (1024 * 1024)" | bc)
         mb_int=$(echo "$mb" | awk -F'.' '{print ($1+0)}')
         mb_int=${mb_int:-0}
 
-        # Determina soglia e nome livello in base al level
         case "$level" in
             3) soglia=$SOGLIA_3; nome_level="admin"      ;;
             2) soglia=$SOGLIA_2; nome_level="power_user" ;;
@@ -111,26 +132,26 @@ while IFS= read -r giorno; do
             *) soglia=$SOGLIA_1; nome_level="unknown"    ;;
         esac
 
-        # Utente disabled: alert se ha fatto QUALSIASI accesso
+        # Utente disabled
         if [ "$level" -eq 0 ] && [ "$totale_accessi" -gt 0 ]; then
             msg="  [CRITICAL] $giorno | $nome (disabled) | IP: $ip | Accessi: $totale_accessi (account disabilitato!)"
             echo "$msg" | tee -a "$REPORT"
-
-            echo -e "ATTENZIONE: L'account DISABILITATO '$nome' (IP: $ip)\nha effettuato $totale_accessi accessi in data $giorno.\n\nQuesto account non dovrebbe avere accesso alla rete.\nVerificare immediatamente.\n\n-- Sistema Automatico Intranet --" \
-                | mail -s "[INTRANET CRITICAL] Accesso account disabilitato: $nome" "$ADMIN_MAIL" 2>/dev/null
-
+            send_mail \
+                "[INTRANET CRITICAL] Accesso account disabilitato: $nome" \
+                "ATTENZIONE: L'account DISABILITATO '$nome' (IP: $ip) ha effettuato $totale_accessi accessi in data $giorno. Questo account non dovrebbe avere accesso alla rete. Verificare immediatamente." \
+                "CRITICAL"
             (( ALERT_COUNT++ ))
             continue
         fi
 
-        # Utenti normali: controlla soglia MB
+        # Utenti normali
         if (( mb_int >= soglia )); then
             msg="  [ALERT] $giorno | $nome ($nome_level) | IP: $ip | ${mb} MB / soglia ${soglia} MB ($accessi accessi)"
             echo "$msg" | tee -a "$REPORT"
-
-            echo -e "L'utente '$nome' (livello: $nome_level, IP: $ip)\nha consumato ${mb} MB in data $giorno,\nsuperando la soglia consentita di ${soglia} MB/giorno.\nAccessi registrati (cod. 200): $accessi\n\n-- Sistema Automatico Intranet --" \
-                | mail -s "[INTRANET ALERT] Banda superata: $nome ($nome_level) il $giorno" "$ADMIN_MAIL" 2>/dev/null
-
+            send_mail \
+                "[INTRANET ALERT] Banda superata: $nome ($nome_level) il $giorno" \
+                "L'utente '$nome' (livello: $nome_level, IP: $ip) ha consumato ${mb} MB in data $giorno, superando la soglia consentita di ${soglia} MB/giorno. Accessi registrati (cod. 200): $accessi" \
+                "ALERT"
             (( ALERT_COUNT++ ))
         else
             printf "  [OK] %s | %-25s (%-11s) | %s MB / %s MB\n" \
@@ -151,3 +172,4 @@ done <<< "$DATES"
 
 echo ""
 echo "[OK] Report salvato in: $REPORT"
+[ "$ALERT_COUNT" -gt 0 ] && echo "[OK] $ALERT_COUNT notifiche salvate in: $MAIL_DIR"
